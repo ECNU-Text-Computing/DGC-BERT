@@ -1,0 +1,14 @@
+{
+    "BERT": {
+        "model_path": "./bert/base_bert/",
+        "vocab_path": "./bert/base_bert/bert-base-uncased-vocab.txt"
+    },
+    "SciBERT": {
+        "model_path": "./bert/scibert/",
+        "vocab_path": "./bert/scibert/vocab.txt"
+    },
+    "ConSERT": {
+        "model_path": "./bert/consert/",
+        "vocab_path": "./bert/consert/vocab.txt"
+    }
+}

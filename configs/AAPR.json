@@ -1,0 +1,79 @@
+{
+    "default":{
+        "word2vec": false,
+        "embed_dim": 128, 
+        "batch_size": 32,
+        "pad_size": 256,
+        "epochs": 20,
+        "rate":0.8,
+        "fixed_num": false,
+        "cut": true,
+        "optimizer": "ADAM",
+        "lr": 1e-3,
+        "scheduler": false,
+        "best_value": "accu_val",
+        "keep_prob": 0.3,
+        "saved_data": false,
+        "fixed_data": false,
+        "T": 1600     
+    },
+    "BERT": {
+        "optimizer": "ADAMW",
+        "model_type": "BERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "SciBERT":{
+        "optimizer": "ADAMW",
+        "model_type": "SciBERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "BAG":{
+        "model_type": "SciBERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "BAGL":{
+        "model_type": "SciBERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "BAGT":{
+        "model_type": "SciBERT",
+        "epochs": 20,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "BAGI":{
+        "model_type": "SciBERT",
+        "epochs": 20,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "BAGIG":{
+        "optimizer": "ADAMW",
+        "model_type": "SciBERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "BAGIGA":{
+        "optimizer": "ADAMW",
+        "model_type": "SciBERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768
+    },
+    "BAGIGS":{
+        "optimizer": "ADAMW",
+        "model_type": "SciBERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768
+    }
+}

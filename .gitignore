@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# My own
+/checkpoints/*
+/data/
+/.vector_cache/
+/.idea/
+/bert/
+/logs/
