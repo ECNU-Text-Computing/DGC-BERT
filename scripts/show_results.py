@@ -14,7 +14,7 @@ import json
 import pandas as pd
 from main import get_DL_data, get_configs
 from pretrained_models.scibert import SciBERT
-from pretrained_models.dgc_bert import BAGIG
+from pretrained_models.dgcbert import DGCBERT
 from pyecharts import options as opts
 from pyecharts.charts import Graph
 
@@ -394,7 +394,7 @@ def get_subgraph_img(result, file_name, target=0, words=None):
 if __name__ == "__main__":
     data_source = 'PeerRead'
     seed = 333
-    model_config = get_configs('PeerRead', ['BAGIG'])['BAGIG']
+    model_config = get_configs(data_source, ['DGCBERT'])['DGCBERT']
     pretrained_types = json.load(open('./configs/pretrained_types.json', 'r'))
     model_config['model_path'] = pretrained_types['SciBERT']['model_path']
     model_config['vocab_path'] = pretrained_types['SciBERT']['vocab_path']

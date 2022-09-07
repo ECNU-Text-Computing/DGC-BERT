@@ -14,16 +14,16 @@ import torch.nn.functional as F
 from transformers import BertModel
 from GNN.CustomConv import CustomGraphConv
 
-from pretrained_models.dgc_bert import *
+from pretrained_models.dgcbert import *
 
 REL_POS = True
 
 
-class BAGIGA(BAGIG):
+class DGCBERTA(DGCBERT):
     def __init__(self, vocab_size, embed_dim, num_class, pad_index, word2vec=None, keep_prob=0.5, pad_size=150,
                  hidden_size=768, model_path=None, mode='normal', model_type='BERT', ablation_module=None, **kwargs):
-        super(BAGIGA, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
-                                     hidden_size, model_path, mode, model_type, **kwargs)
+        super(DGCBERTA, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
+                                       hidden_size, model_path, mode, model_type, **kwargs)
         print('==current parent==', self.model_name)
 
         # print(self.bert_trans)
@@ -49,14 +49,14 @@ class BAGIGA(BAGIG):
                                                self.top_rate, 'simple', self.reduce_method)
 
 
-class BAGIGS(BAGIGA):
+class DGCBERTS(DGCBERTA):
     '''
     single layer prediction
     '''
     def __init__(self, vocab_size, embed_dim, num_class, pad_index, word2vec=None, keep_prob=0.5, pad_size=150,
                  hidden_size=768, model_path=None, mode='normal', model_type='BERT', ablation_module=None, **kwargs):
-        super(BAGIGS, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
-                                     hidden_size, model_path, mode, model_type, ablation_module, **kwargs)
+        super(DGCBERTS, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
+                                       hidden_size, model_path, mode, model_type, ablation_module, **kwargs)
         print('==current parent==', self.model_name)
         self.model_name = self.model_name + '_ablation_' + ablation_module
         self.final_dim = self.predict_dim if self.block_pooled else 2 * self.predict_dim
@@ -220,7 +220,7 @@ class TopGCNAttentionGNNModule(TopAPPNPAttentionGNNModule):
         # result_node_embedding = torch.cat([graph.ndata['h'].unsqueeze(dim=0) for graph in unbatched_graph], dim=0)
         result_node_embedding = torch.cat([
             torch.cat([graph.ndata['h'],
-                       torch.zeros([(seq_len - graph.ndata['h'].shape[0]), self.predicut_dim]).to(self.device)],
+                       torch.zeros([(seq_len - graph.ndata['h'].shape[0]), self.predict_dim]).to(self.device)],
                       dim=0).unsqueeze(dim=0)
             for graph in unbatched_graph], dim=0)
         out = self.fc(self.dropout(self.activation(result_node_embedding)))
@@ -268,9 +268,9 @@ if __name__ == "__main__":
     # print(result[0])
 
     args = {'k': 5, 'alpha': None, 'top_rate': 0.1, 'predict_dim': None}
-    model = BAGIGA(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax',
-                   ablation_module='mgcn', args=args).cuda()
-    # model = BAGIGS(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax',
+    model = DGCBERTA(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax',
+                     ablation_module='mgcn', args=args).cuda()
+    # model = DGCBERTS(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax',
     #                ablation_module='semantic', args=args).cuda()
     seq_len = 128
     bs = 2

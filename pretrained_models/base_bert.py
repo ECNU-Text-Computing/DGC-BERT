@@ -25,7 +25,7 @@ class BaseBert(BaseModel):
                                               output_hidden_states=True)
         self.adaptive_lr = True
         self.warmup = True
-        self.mode = 'normal'
+        # self.mode = 'normal'
         # print(self.bert)
         # self.bert = AutoModelForSequenceClassification.from_pretrained(model_path)
         print(model_path)
@@ -34,29 +34,6 @@ class BaseBert(BaseModel):
         for param in self.bert.parameters():
             param.requires_grad = True
         self.fc = nn.Linear(self.hidden_size, self.num_class)
-        if 'mode' in kwargs.keys():
-            if kwargs['mode'] == 'pro':
-                print('using pro')
-                self.fc = nn.Sequential(
-                    nn.Linear(self.hidden_size, int(self.hidden_size / 2)),
-                    # nn.ReLU(),
-                    nn.Tanh(),
-                    nn.Dropout(p=keep_prob),
-                    nn.Linear(int(self.hidden_size / 2), int(self.hidden_size / 4)),
-                    # nn.ReLU(),
-                    nn.Tanh(),
-                    nn.Dropout(p=keep_prob),
-                    nn.Linear(int(self.hidden_size / 4), self.num_class)
-                )
-            elif kwargs['mode'] == 'adap':
-                print('using adap')
-                self.mode = 'adap'
-                self.predict_dim = int(kwargs['args']['predict_dim'])
-                self.fc = nn.Sequential(
-                    nn.Linear(self.hidden_size, self.predict_dim),
-                    nn.Tanh(),
-                    nn.Linear(self.predict_dim, self.num_class)
-                )
 
         self.dropout = nn.Dropout(keep_prob)
 
@@ -100,17 +77,8 @@ class BaseBert(BaseModel):
         content = content.permute(1, 0)
 
         output = self.bert(content, attention_mask=masks)
-        # print(len(output['hidden_states']))
-        # print(output['hidden_states'][0].shape)
-        # print(torch.cat(output['hidden_states'], dim=0).shape)
-        if self.mode == 'adap':
-            out = output['hidden_states'][-1][:, 0]
-        else:
-            out = output['pooler_output']
 
-        # out = output['last_hidden_state'][:, 1:, :]
-        # out = (torch.sum(out, dim=1).T / (lengths - 1)).T
-        # out = torch.mean(output['last_hidden_state'], dim=1)
+        out = output['pooler_output']
 
         out = self.dropout(out)
         out = self.fc(out)

@@ -11,8 +11,8 @@ import pandas as pd
 
 import torch
 
-from pretrained_models.dgc_bert import BAGIG
-from pretrained_models.dgc_bert_ablation import BAGIGA, BAGIGS
+from pretrained_models.dgcbert import DGCBERT
+from pretrained_models.dgc_bert_ablation import DGCBERTA, DGCBERTS
 from pretrained_models.BAGT import BAGT
 from pretrained_models.bert import BERT
 from pretrained_models.scibert import SciBERT
@@ -50,7 +50,7 @@ def get_DL_data(base_config=None, train_word2vec=False, data_source='openreview'
         label_dict = dataProcessor.label_map()
         # label_dict = json.load(open(dataProcessor.data_cat_path + 'label_map.json', 'r'))
         dataProcessor.num_class = len(label_dict)
-        dataProcessor.split_data(rate=base_config['rate'], fixed_num=base_config['fixed_num'])
+        # dataProcessor.split_data(rate=base_config['rate'], fixed_num=base_config['fixed_num'])
         if base_config['fixed_data']:
             all_contents, all_labels, \
             train_contents, train_labels, train_indexes, \
@@ -134,8 +134,9 @@ def train_single_vote(model_name='simple_model', dataProcessor=None, model_confi
 
 def get_model(model_name, dataProcessor, device, model_config, seed=None, args=None):
     model = None
-    if args:
-        args = args.__dict__
+    # if args:
+    #     if type(args) != dict:
+    #         args = args.__dict__
     keep_prob = model_config["keep_prob"] if "keep_prob" in model_config.keys() else 0.5
     T = model_config["T"] if "T" in model_config.keys() else 400
     if model_name == 'BERT':
@@ -166,29 +167,29 @@ def get_model(model_name, dataProcessor, device, model_config, seed=None, args=N
                      pad_size=dataProcessor.pad_size, model_path=model_config['model_path'], mode=model_config["mode"],
                      model_type=model_config["model_type"], T=T, seed=seed, args=args
                      ).to(device)
-    elif model_name == 'BAGIG':
+    elif model_name == 'DGCBERT':
         hidden_size = model_config["hidden_size"] if "hidden_size" in model_config.keys() else 768
-        model = BAGIG(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
-                      dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
-                      pad_size=dataProcessor.pad_size, model_path=model_config['model_path'], mode=model_config["mode"],
-                      model_type=model_config["model_type"], T=T, seed=seed, args=args
-                      ).to(device)
-    elif model_name == 'BAGIGA':
+        model = DGCBERT(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
+                        dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
+                        pad_size=dataProcessor.pad_size, model_path=model_config['model_path'], mode=model_config["mode"],
+                        model_type=model_config["model_type"], T=T, seed=seed, args=args
+                        ).to(device)
+    elif model_name == 'DGCBERTA':
         hidden_size = model_config["hidden_size"] if "hidden_size" in model_config.keys() else 768
-        model = BAGIGA(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
-                       dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
-                       pad_size=dataProcessor.pad_size, model_path=model_config['model_path'],
-                       mode=model_config["mode"],
-                       model_type=model_config["model_type"], ablation_module=model_config['ablation_module'], T=T,
-                       seed=seed, args=args).to(device)
-    elif model_name == 'BAGIGS':
+        model = DGCBERTA(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
+                         dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
+                         pad_size=dataProcessor.pad_size, model_path=model_config['model_path'],
+                         mode=model_config["mode"],
+                         model_type=model_config["model_type"], ablation_module=model_config['ablation_module'], T=T,
+                         seed=seed, args=args).to(device)
+    elif model_name == 'DGCBERTS':
         hidden_size = model_config["hidden_size"] if "hidden_size" in model_config.keys() else 768
-        model = BAGIGS(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
-                       dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
-                       pad_size=dataProcessor.pad_size, model_path=model_config['model_path'],
-                       mode=model_config["mode"],
-                       model_type=model_config["model_type"], ablation_module=model_config['ablation_module'], T=T,
-                       seed=seed, args=args).to(device)
+        model = DGCBERTS(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
+                         dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
+                         pad_size=dataProcessor.pad_size, model_path=model_config['model_path'],
+                         mode=model_config["mode"],
+                         model_type=model_config["model_type"], ablation_module=model_config['ablation_module'], T=T,
+                         seed=seed, args=args).to(device)
 
     return model
 
@@ -296,7 +297,7 @@ def dictToObj(dictObj):
     return d
 
 
-def phase_model_train(phase, data_source, model_name, model_config, seed, mode=None, args=None):
+def phase_model_train(phase, data_source, model_name, model_config, seed=123, mode=None, args=None):
     final_results = None
     if phase == 'model':
         dataProcessor = get_DL_data(base_config=model_config, data_source=data_source,
@@ -315,7 +316,7 @@ def phase_model_train(phase, data_source, model_name, model_config, seed, mode=N
     return final_results
 
 
-def get_mistake_results(model_path, model_name, model_config, phase, data_source, seed, args):
+def get_mistake_results(model_path, model_name, model_config, phase, data_source, seed=123, args=None):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(model_path)
     if phase == 'model':
@@ -353,21 +354,23 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
 
-    parser.add_argument('--phase', default='best_model', help='the function name.')
+    parser.add_argument('--phase', default='model_test', help='the function name.')
     parser.add_argument('--ablation', default=None, help='the ablation modules.')
     parser.add_argument('--data_source', default='PeerRead', help='the data source.')
     parser.add_argument('--mode', default=None, help='the model mode.')
-    parser.add_argument('--type', default='BERT', help='the model type.')
-    parser.add_argument('--seed', default=555, help='the data seed.')
+    parser.add_argument('--type', default='SciBERT', help='the model type.')
+    parser.add_argument('--seed', default=None, help='the data seed.')
     parser.add_argument('--model_seed', default=123, help='the model seed.')
-    parser.add_argument('--model', default=None, help='the selected model for other methods.')
+    parser.add_argument('--model', default='DGCBERT', help='the selected model for other methods.')
     parser.add_argument('--model_path', default=None, help='the selected model for deep analysis.')
     parser.add_argument('--k', default=None, help='the layers.')
     parser.add_argument('--alpha', default=None, help='the alpha.')
     parser.add_argument('--top_rate', default=None, help='the alpha.')
     parser.add_argument('--predict_dim', default=None, help='the predict dim.')
+    parser.add_argument('--state_dict_path', default=None, help='the selected state_dict for deep analysis.')
 
     args = parser.parse_args()
+    args_dict = args.__dict__
     print('args', args)
     print('data_seed', args.seed)
     # setup_seed(int(args.seed))  # 原本的模型种子和数据种子一同修改
@@ -375,8 +378,8 @@ if __name__ == '__main__':
     setup_seed(MODEL_SEED)  # 模型种子固定为123，数据种子根据输入修改
     print('model_seed', MODEL_SEED)
     print('===============注意这里修改了模型种子！==========================')
-    pretrained_models = ['BERT', 'SciBERT', 'BAG', 'BAGT', 'BAGIG', 'BAGIGA',
-                         'BAGIGS']
+    pretrained_models = ['BERT', 'SciBERT', 'BAG', 'BAGT', 'DGCBERT', 'DGCBERTA',
+                         'DGCBERTS']
     all_list = pretrained_models
     DATA_SOURCE = args.data_source  # ['openreview', 'AAPR', 'openreview_abstract']
     CONFIG_DICT = get_configs(DATA_SOURCE, all_list)
@@ -401,16 +404,41 @@ if __name__ == '__main__':
     # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     if args.phase == 'test':
         print('This is a test process.')
-        print(CONFIG_DICT['BERTAttentionCNN'])
-        dataProcessor = get_DL_data(base_config=DEFAULT_CONFIG, data_source='PeerRead',
-                                    load_data=DEFAULT_CONFIG['saved_data'], seed=123)
+        # dataProcessor = get_DL_data(base_config=DEFAULT_CONFIG, data_source='PeerRead',
+        #                             load_data=DEFAULT_CONFIG['saved_data'], seed=123)
+        model = torch.load('./checkpoints/PeerRead/DGCBERT_complete_best')
+        print(model.state_dict())
     elif args.phase in pretrained_models:
         if args.ablation:
             print('>>ablation start!<<')
             CONFIG_DICT[args.phase]['ablation_module'] = args.ablation
-        phase_model_train('pretrained', DATA_SOURCE, args.phase, CONFIG_DICT[args.phase], args.seed, args.mode, args)
+        phase_model_train('pretrained', DATA_SOURCE, args.phase, CONFIG_DICT[args.phase], mode=args.mode, args=args_dict)
     elif args.phase == 'best_pretrained':
         get_pretrained_test(DATA_SOURCE, PRETRAINED_MODEL, CONFIG_DICT[PRETRAINED_MODEL], DEFAULT_CONFIG['best_value'])
+    elif args.phase == 'model_test':
+        model_config = CONFIG_DICT[args.model]
+        if 'mode' not in model_config:
+            model_config['mode'] = args.mode
+        dataProcessor = get_DL_data(base_config=model_config, data_source=DATA_SOURCE,
+                                    BERT_tokenizer_path=model_config['vocab_path'],
+                                    load_data=model_config['saved_data'])
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        state_dict_path = args.state_dict_path
+
+        if args.model.startswith('DGCBERT'):
+            args_dict['k'] = model_config['k']
+            args_dict['alpha'] = model_config['alpha']
+            args_dict['top_rate'] = model_config['top_rate']
+            args_dict['predict_dim'] = model_config['predict_dim']
+
+        if not args.state_dict_path:
+            state_dict_path = model_config['state_dict_path']
+
+        print('state_dict_path:', state_dict_path)
+        model = get_model(args.model, dataProcessor, device, model_config, args=args_dict)
+        model.load_model(state_dict_path)
+        # model = torch.load('./checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
+        model.test(dataProcessor.dataloaders[2])
     elif args.phase == 'mistake_results':
         model_config = CONFIG_DICT[args.model]
         if args.model in pretrained_models:
@@ -418,7 +446,7 @@ if __name__ == '__main__':
             model_config['mode'] = None
         else:
             model_type = None
-        get_mistake_results(args.model_path, args.model, model_config, model_type, args.data_source, args.seed, args)
+        get_mistake_results(args.model_path, args.model, model_config, model_type, args.data_source, args=args_dict)
     else:
         print('error! No such method!')
     end_time = datetime.datetime.now()

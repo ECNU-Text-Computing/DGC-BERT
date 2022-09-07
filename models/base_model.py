@@ -198,11 +198,14 @@ class BaseModel(nn.Module):
         return final_results
 
     def save_model(self, path):
-        torch.save(self, path)
+        # torch.save(self, path)
+        torch.save({'state_dict': self.state_dict()}, path)
         print('Save successfully!')
 
     def load_model(self, path):
-        model = torch.load(path)
+        # model = torch.load(path)
+        state_dict = torch.load(path)['state_dict']
+        model = self.load_state_dict(state_dict)
         print('Load successfully!')
         return model
 
@@ -292,6 +295,9 @@ class BaseModel(nn.Module):
 
 def cal_metrics(all_true_label, all_predicted_result):
     all_predicted_label = np.argmax(all_predicted_result, axis=1)
+    # print(len(all_true_label))
+    # print(all_true_label)
+    # print(all_predicted_label)
     # all
     acc = accuracy_score(all_true_label, all_predicted_label)
     roc_auc = roc_auc_score(all_true_label, all_predicted_result[:, 1])

@@ -29,7 +29,8 @@
         "model_type": "SciBERT",
         "epochs": 5,
         "lr": 2e-5,
-        "hidden_size": 768
+        "hidden_size": 768,
+        "state_dict_path": "./checkpoints/PeerRead/SciBERT_best.pt"
     },
     "BAG":{
         "model_type": "SciBERT",
@@ -55,21 +56,27 @@
         "lr": 2e-5,
         "hidden_size": 768
     },
-    "BAGIG":{
+    "DGCBERT":{
         "optimizer": "ADAMW",
         "model_type": "SciBERT",
         "epochs": 5,
         "lr": 2e-5,
-        "hidden_size": 768
+        "hidden_size": 768,
+        "k": 10,
+        "alpha": 0.2,
+        "top_rate": 0.05,
+        "predict_dim": 256,
+        "state_dict_path": "./checkpoints/PeerRead/DGCBERT_best.pt",
+        "mode": "top_biaffine+softmax"
     },  
-    "BAGIGA":{
+    "DGCBERTA":{
         "optimizer": "ADAMW",
         "model_type": "SciBERT",
         "epochs": 5,
         "lr": 2e-5,
         "hidden_size": 768
     }, 
-    "BAGIGS":{
+    "DGCBERTS":{
         "optimizer": "ADAMW",
         "model_type": "SciBERT",
         "epochs": 5,

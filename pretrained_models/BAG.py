@@ -232,17 +232,17 @@ class TopGNNModule(nn.Module):
         self.device = device
         self.dim_model = dim_model
         self.top_rate = top_rate
-        self.predicut_dim = predict_dim
+        self.predict_dim = predict_dim
         # self.node_trans = nn.Linear(self.dim_model, self.dim_model)
-        self.node_trans = nn.Linear(self.dim_model, self.predicut_dim)
+        self.node_trans = nn.Linear(self.dim_model, self.predict_dim)
         # self.node_trans1 = nn.Linear(self.dim_model, self.dim_model)
         # self.node_trans2 = nn.Linear(self.dim_model, self.dim_model)
         # self.fc = nn.Linear(self.dim_model, self.dim_model)
-        self.fc = nn.Linear(self.predicut_dim, self.predicut_dim)
+        self.fc = nn.Linear(self.predict_dim, self.predict_dim)
         self.dropout = nn.Dropout(keep_prob)
         self.activation = ACTIVATION()
         # self.ln = nn.LayerNorm(self.dim_model)
-        self.ln = nn.LayerNorm(self.predicut_dim)
+        self.ln = nn.LayerNorm(self.predict_dim)
         self.node_eta = torch.nn.Parameter(torch.FloatTensor(1), requires_grad=True).cuda()
         self.node_eta.data.fill_(0)
         self.reduce = reduce

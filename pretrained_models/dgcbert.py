@@ -19,13 +19,13 @@ REL_POS = False
 # ACTIVATION = nn.Tanh
 
 
-class BAGIG(BAGT):
+class DGCBERT(BAGT):
     def __init__(self, vocab_size, embed_dim, num_class, pad_index, word2vec=None, keep_prob=0.5, pad_size=150,
                  hidden_size=768, model_path=None, mode='normal', model_type='BERT', **kwargs):
-        super(BAGIG, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
-                                    hidden_size, model_path, mode, model_type, **kwargs)
+        super(DGCBERT, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
+                                      hidden_size, model_path, mode, model_type, **kwargs)
         print('==current parent==', self.model_name)
-        self.model_name = 'BAGIG'
+        self.model_name = 'DGCBERT'
         self.block_pooled = False
         self.reduce_method = 'mean'
         self.predict_dim = 128
@@ -34,6 +34,7 @@ class BAGIG(BAGT):
         self.attention_mode = 'biaffine'
         if 'args' in kwargs:
             self.args = kwargs['args']
+            print(self.args)
             self.k = int(self.args['k']) if self.args['k'] else self.k
             self.alpha = float(self.args['alpha']) if self.args['alpha'] else self.alpha
             self.top_rate = float(self.args['top_rate']) if self.args['top_rate'] else self.top_rate
@@ -153,11 +154,11 @@ class TopAttentionGNN(TopGNN):
 
     def forward(self, output, lengths):
         # get the max attention matrices from different layers
-        word_attention = torch.stack(output['attentions'][:3], dim=4).max(dim=4)[0]
+        word_attention = torch.stack(output['attentions'][:3], dim=4).max(dim=4)[0].mean(dim=1)
         word_embed = self.hs_word_trans(torch.stack(output['hidden_states'][:3], dim=3).transpose(-2, -1)
                                         ).transpose(-2, -1).max(dim=3)[0]
         # semantic_attention = torch.stack(output['attentions'][-3:], dim=4).mean(dim=4)
-        semantic_attention = torch.stack(output['attentions'][-3:], dim=4).max(dim=4)[0]
+        semantic_attention = torch.stack(output['attentions'][-3:], dim=4).max(dim=4)[0].mean(dim=1)
         semantic_embed = self.hs_semantic_trans(torch.stack(output['hidden_states'][-4:-1], dim=3).transpose(-2, -1)
                                                 ).transpose(-2, -1).max(dim=3)[0]
 
@@ -176,8 +177,9 @@ class TopAPPNPAttentionGNNModule(TopAPPNPGNNModule):
         batch_size = hidden_state.size(0)
         seq_len = hidden_state.size(1)
         # get the attention matrices from different heads
-        dealt_atten = attention.mean(dim=1)
+        # dealt_atten = attention.mean(dim=1)
         # dealt_atten = attention.max(dim=1)[0]
+        dealt_atten = attention
         topk_result = torch.topk(dealt_atten, round(self.top_rate * hidden_state.size(1)))
         topk_values = topk_result.values
         topk_indices = topk_result.indices
@@ -193,7 +195,7 @@ class TopAPPNPAttentionGNNModule(TopAPPNPGNNModule):
         # result_node_embedding = torch.cat([graph.ndata['h'].unsqueeze(dim=0) for graph in unbatched_graph], dim=0)
         result_node_embedding = torch.cat([
             torch.cat([graph.ndata['h'],
-                       torch.zeros([(seq_len - graph.ndata['h'].shape[0]), self.predicut_dim]).to(self.device)],
+                       torch.zeros([(seq_len - graph.ndata['h'].shape[0]), self.predict_dim]).to(self.device)],
                       dim=0).unsqueeze(dim=0)
             for graph in unbatched_graph], dim=0)
         out = self.fc(self.dropout(self.activation(result_node_embedding)))
@@ -293,7 +295,7 @@ if __name__ == "__main__":
     # print(result[0].shape)
     # print(result[0])
     args = {'k': 5, 'alpha': None, 'top_rate': 0.1, 'predict_dim': None}
-    model = BAGIG(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax', args=args).cuda()
+    model = DGCBERT(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax', args=args).cuda()
     seq_len = 128
     bs = 2
     # x = torch.randint(0, 20000, (seq_len, 2)).cuda()
