@@ -129,9 +129,11 @@ dmypy.json
 .pyre/
 
 # My own
-/checkpoints/*
-/data/
+/checkpoints/AAPR/*
+/checkpoints/PeerRead/*
+/checkpoints/results/*
+/data/*
 /.vector_cache/
 /.idea/
-/bert/
+/bert/*
 /logs/
