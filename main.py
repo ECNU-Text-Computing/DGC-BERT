@@ -12,7 +12,7 @@ import pandas as pd
 import torch
 
 from pretrained_models.dgcbert import DGCBERT
-from pretrained_models.dgc_bert_ablation import DGCBERTA, DGCBERTS
+from pretrained_models.dgcbert_ablation import DGCBERTA, DGCBERTS
 from pretrained_models.BAGT import BAGT
 from pretrained_models.bert import BERT
 from pretrained_models.scibert import SciBERT
