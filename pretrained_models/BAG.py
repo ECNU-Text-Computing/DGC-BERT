@@ -348,9 +348,9 @@ class TopAPPNPGNNModule(TopSAGEGNNModule):
     def __init__(self, dim_model, keep_prob, device, top_rate=0.1, reduce='mean', predict_dim=None, k=10, alpha=0.2):
         super(TopAPPNPGNNModule, self).__init__(dim_model, keep_prob, device, top_rate, reduce, predict_dim)
         self.conv = CustomAPPNPConv(k=k, alpha=alpha)
-        print(self.conv._k)
-        print(self.conv._alpha)
-        print(self.conv.edge_drop)
+        # print(self.conv._k)
+        # print(self.conv._alpha)
+        # print(self.conv.edge_drop)
 
 
 class TopTAGGNNModule(TopSAGEGNNModule):

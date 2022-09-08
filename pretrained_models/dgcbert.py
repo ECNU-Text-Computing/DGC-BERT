@@ -96,7 +96,7 @@ class DGCBERT(BAGT):
                 ACTIVATION()
             )
 
-        print(self.bert_trans)
+        # print(self.bert_trans)
         if (self.attention_mode == 'normal') | (self.attention_mode == 'biaffine'):
             self.word_interaction = InteractionModule(self.predict_dim, self.attention_mode)
             self.semantic_interaction = InteractionModule(self.predict_dim, self.attention_mode)
@@ -109,7 +109,7 @@ class DGCBERT(BAGT):
             # nn.Dropout(p=keep_prob),
             nn.Linear(int(self.final_dim / 4), self.num_class),
         )
-        print(self.fc)
+        # print(self.fc)
 
     def forward(self, content, lengths, masks, **kwargs):
         lengths = torch.sum(masks, dim=-1)
@@ -209,7 +209,6 @@ class InteractionModule(nn.Module):
         combine the information of word and semantic
         '''
         super(InteractionModule, self).__init__()
-        # print('尝试用max_pooling代替最后的avg_pool')
         self.attention_mode = attention_mode
         self.dim_model = dim_model
         self.fc = nn.Linear(dim_model * 2, dim_model)

@@ -11,7 +11,7 @@ Re-examining lexical and semantic attention: Dual-view graph convolutions enhanc
 
 ## Usage
 Download the dataset from XXX <br>
-make directory ./checkpoints/$data_source/
+You can get the SciBERT model here https://github.com/allenai/scibert
 
 ### Training
 ```sh

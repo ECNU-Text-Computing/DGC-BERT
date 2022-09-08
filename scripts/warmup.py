@@ -5,7 +5,7 @@ from torch.optim.adamw import AdamW
 
 class TriangularScheduler(_LRScheduler):
     '''
-    确保输入最后的参数为BERT外参数，不采用预热
+    make sure the bert params with unfixed lr
     '''
     def __init__(self, optimizer, cut_frac, T, ratio):
         self.cut_frac = cut_frac
@@ -13,7 +13,6 @@ class TriangularScheduler(_LRScheduler):
         self.ratio = ratio
         self.cut = self.T * self.cut_frac
         self.finished = False
-        print('修改预热策略，这里只对bert参数进行预热，其他参数使用正常策略')
         super(TriangularScheduler, self).__init__(optimizer)
 
     def get_lr(self):

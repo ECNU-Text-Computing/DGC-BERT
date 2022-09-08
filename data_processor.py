@@ -361,7 +361,7 @@ class DataProcessor(object):
         vectorizer = TfidfModel(train_corpus)
         if not path:
             dump(vectorizer, './checkpoints/{}/tfidf_vectorizer_gensim'.format(self.data_source))
-            dump(gensim_dict, './checkpoints/{}/tfidf_vectorizer_gensim_{}_dict'.format(self.data_source, self.seed))
+            dump(gensim_dict, './checkpoints/{}/tfidf_vectorizer_gensim_dict'.format(self.data_source))
         else:
             dump(vectorizer, path)
             dump(gensim_dict, path + '_dict')
@@ -376,7 +376,7 @@ class DataProcessor(object):
 
         if not path:
             dump(lda, './checkpoints/{}/lda'.format(self.data_source))
-            dump(lda_dict, './checkpoints/{}/lda_{}_dict'.format(self.data_source, self.seed))
+            dump(lda_dict, './checkpoints/{}/lda_dict'.format(self.data_source))
         else:
             dump(lda, path)
             dump(lda_dict, path + '_dict')
@@ -390,7 +390,7 @@ class DataProcessor(object):
         model = Word2Vec(sentences=train_contents, vector_size=embed_dim, window=5, min_count=1, workers=4, sg=sg)
         if not path:
             model.wv.save_word2vec_format('./checkpoints/{}/word2vec'.format(self.data_source))
-            model.save('./checkpoints/{}/word2vec_{}_model'.format(self.data_source, self.seed))
+            model.save('./checkpoints/{}/word2vec_model'.format(self.data_source))
         else:
             model.wv.save_word2vec_format(path)
             model.save(path + '_model')
@@ -472,7 +472,7 @@ class DataProcessor(object):
             self.vocab = vocab(self.tokenizer.vocab, min_freq=0)
         else:
             if load_vocab:
-                self.vocab = torch.load(self.data_root + self.data_source + '/' + 'vocab_{}.pth'.format(self.seed))
+                self.vocab = torch.load(self.data_root + self.data_source + '/' + 'vocab.pth')
             else:
                 self.vocab = build_vocab_from_iterator(self.yield_tokens(train_contents), specials=[UNK, PAD])
         self.vocab.set_default_index(self.vocab[UNK])
@@ -480,23 +480,17 @@ class DataProcessor(object):
         # self.text_pipeline = lambda x: self.vocab(tokenizer(x.strip()))
         # self.label_pipeline = lambda x: int(x.strip())
         if not save_path:
-            torch.save(self.vocab, self.data_root + self.data_source + '/' + 'vocab_{}.pth'.format(self.seed))
+            torch.save(self.vocab, self.data_root + self.data_source + '/' + 'vocab.pth')
         else:
             torch.save(self.vocab, save_path)
         return self.vocab
 
     def get_dataloader(self, batch_size, extract_method='raw_text', cut=False, using_bert=False):
-        if self.data_source == 'PeerRead':
-            all_contents, all_labels, \
-            train_contents, train_labels, train_indexes, \
-            val_contents, val_labels, val_indexes, \
-            test_contents, test_labels, test_indexes = self.load_data()
-            print(len(train_contents))
-        else:
-            all_contents, all_labels, \
-            train_contents, train_labels, train_indexes, \
-            val_contents, val_labels, val_indexes, \
-            test_contents, test_labels, test_indexes = self.load_data(seed=self.seed)
+        all_contents, all_labels, \
+        train_contents, train_labels, train_indexes, \
+        val_contents, val_labels, val_indexes, \
+        test_contents, test_labels, test_indexes = self.load_data()
+        print(len(train_contents))
 
         self.label_pipeline = lambda x: int(x.strip())
         if cut:
@@ -581,9 +575,9 @@ class DataProcessor(object):
             print('ops')
         else:
             self.vocab = torch.load(
-                self.data_root + self.data_source + '/' + 'vocab_{}.pth'.format(config['seed']))
+                self.data_root + self.data_source + '/' + 'vocab.pth')
             self.authors_dict = torch.load(
-                self.data_root + self.data_source + '/' + 'authors_vocab_{}.pth'.format(config['seed']))
+                self.data_root + self.data_source + '/' + 'authors_vocab.pth')
             phase_dict = {}
             for phase in phases:
                 part_dict = {}
@@ -670,8 +664,8 @@ class DataProcessor(object):
     def get_saved_dataloader(self, base_config):
         data_dict = torch.load(self.data_cat_path + base_config['saved_data'])
         self.content_num = len(base_config['full_len'])
-        self.vocab = torch.load(self.data_cat_path + 'vocab_{}.pth'.format(base_config['seed']))
-        self.authors_dict = torch.load(self.data_cat_path + 'authors_vocab_{}.pth'.format(base_config['seed']))
+        self.vocab = torch.load(self.data_cat_path + 'vocab.pth')
+        self.authors_dict = torch.load(self.data_cat_path + 'authors_vocab.pth')
         self.text_num = base_config['text_numbers']
         self.ablation_list = base_config['ablation_list']
 
@@ -709,12 +703,12 @@ class DataProcessor(object):
     def get_han_dataloader(self, base_config):
         data_dict = torch.load(self.data_cat_path + base_config['saved_data'])
         self.content_num = len(base_config['full_len'])
-        self.vocab = torch.load(self.data_cat_path + 'vocab_{}.pth'.format(base_config['seed']))
+        self.vocab = torch.load(self.data_cat_path + 'vocab.pth')
 
         self.special_tokens = ['<TITLE>', '</TITLE>', '<ABSTRACT>', '</ABSTRACT>', '<BODY_TEXT>', '</BODY_TEXT>']
         for token in self.special_tokens:
             self.vocab.append_token(token)
-        torch.save(self.vocab, self.data_cat_path + 'vocab_{}_han.pth'.format(base_config['seed']))
+        torch.save(self.vocab, self.data_cat_path + 'vocab_han.pth')
 
         train_dataloader = DataLoader(dataset=data_dict['train'], batch_size=base_config['batch_size'],
                                       shuffle=True, num_workers=0, collate_fn=self.collate_batch_han)
@@ -865,7 +859,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    dataProcessor = DataProcessor(data_source=args.data_source, seed=args.seed)
+    dataProcessor = DataProcessor(data_source=args.data_source)
     # dataProcessor.split_data()
     # dataProcessor.load_data()
 
@@ -898,8 +892,8 @@ if __name__ == '__main__':
         in_path = args.in_path
         out_path = args.out_path
         make_data(in_path, out_path, seed, config['rate'])
-        dataProcessor = DataProcessor(data_source=DATA_SOURCE, seed=seed)
-        dataProcessor.get_full_dealt_data(config, False, 'save_data_{}'.format(seed), seed=seed)
+        dataProcessor = DataProcessor(data_source=DATA_SOURCE)
+        dataProcessor.get_full_dealt_data(config, False, 'save_data')
     elif args.phase == 'get_peerread':
         DATA_SOURCE = 'PeerRead_full'
         config = json.load(open('./configs/{}.json'.format(DATA_SOURCE)))['default']
@@ -908,8 +902,8 @@ if __name__ == '__main__':
         in_path = args.in_path
         out_path = args.out_path
         make_pr_data(in_path, out_path, seed, config['rate'])
-        dataProcessor = DataProcessor(data_source=DATA_SOURCE, seed=seed)
-        dataProcessor.get_full_dealt_data(config, False, 'save_data_{}'.format(seed), seed=seed)
+        dataProcessor = DataProcessor(data_source=DATA_SOURCE)
+        dataProcessor.get_full_dealt_data(config, False, 'save_data')
     elif args.phase == 'get_chunk':
         config = json.load(open('./configs/{}.json'.format(args.data_source)))['default']
         seed = int(args.seed)
@@ -917,8 +911,6 @@ if __name__ == '__main__':
         in_path = './data/{}/'.format(args.data_source)
         out_path = './data/{}/'.format(args.data_source)
         make_chunk_data(in_path, out_path, seed, './bert/base_bert/')
-        # dataProcessor = DataProcessor(data_source=args.data_source, seed=seed)
-        # dataProcessor.get_full_dealt_data(config, False, 'save_data_{}'.format(seed), seed=seed)
 
     else:
         print('error! No such method!')

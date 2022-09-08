@@ -30,7 +30,6 @@ def get_DL_data(base_config=None, train_word2vec=False, data_source='openreview'
                 BERT_tokenizer_path=None, load_data=None, seed=123):
     if not BERT_tokenizer_path:
         BERT_tokenizer_path = base_config['vocab_path'] if 'vocab_path' in base_config.keys() else None
-    # 读取并划分疏忽聚集
     dataProcessor = DataProcessor(pad_size=base_config['pad_size'], data_source=data_source, seed=seed)
     dataProcessor.batch_size = base_config['batch_size']
     dataProcessor.embed_dim = base_config['embed_dim']
@@ -373,11 +372,9 @@ if __name__ == '__main__':
     args_dict = args.__dict__
     print('args', args)
     print('data_seed', args.seed)
-    # setup_seed(int(args.seed))  # 原本的模型种子和数据种子一同修改
     MODEL_SEED = int(args.model_seed)
-    setup_seed(MODEL_SEED)  # 模型种子固定为123，数据种子根据输入修改
+    setup_seed(MODEL_SEED)
     print('model_seed', MODEL_SEED)
-    print('===============注意这里修改了模型种子！==========================')
     pretrained_models = ['BERT', 'SciBERT', 'BAG', 'BAGT', 'DGCBERT', 'DGCBERTA',
                          'DGCBERTS']
     all_list = pretrained_models

@@ -70,7 +70,7 @@ def clean_str(string):
     # sents_joined = [' '.join(sent) for sent in sents_filtered_stopwords]
     # string = sentence_sep.join(sents_joined)
 
-    # string = string.replace(',', '')  # 忘了保留逗号了！！！！！！！！！！！！！！！！！！！！！！
+    # string = string.replace(',', '')
     string = string.replace('.', '')
     string = string.replace('?', '')
     string = string.replace('!', '')

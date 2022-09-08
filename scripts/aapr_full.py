@@ -28,7 +28,7 @@ def split_data(in_path, out_path, shuffle=True, rate=0.7, seed=123):
     all_data = json.load(open(in_path, 'r'))
     data = [{key: all_data[key][i] for key in all_data.keys()} for i in range(len(all_data['abstract']))]
     print('original data length', len(data))
-    # 筛选摘要内容长度超过20的有效文本作为数据，和只用摘要部分的数据对齐
+    # > 20
     selected_data = list(filter(lambda x: len(tokenizer('. '.join(x['abstract']).strip())) > 20, data))
     print('selected data length', len(selected_data))
     data_keys = all_data.keys()
@@ -107,7 +107,6 @@ def get_vocab(path, seed=123, word_min_freq=5):
 
 
 def yield_tokens(data_iter):
-    # 转换成生成器形式，以便后续进行处理
     for content in data_iter:
         yield tokenizer(content.encode('utf-8', 'replace').decode('utf-8'))
         # yield tokenizer(content)
@@ -184,7 +183,6 @@ if __name__ == '__main__':
         # print(data[0])
         make_chunk_data('../data/PeerRead_full/', out_path='../data/PeerRead_full/', seed=333, bert_path='../bert/base_bert/')
     elif args.phase == 'make_data':
-        # 并不直接用这里的方法，实际上处理在data_processor中
         in_path = args.in_path
         out_path = args.out_path
         seed = args.seed
