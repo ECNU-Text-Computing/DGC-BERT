@@ -383,8 +383,6 @@ class DataProcessor(object):
         return lda_dict, lda
 
     def get_word2vec(self, train_contents, embed_dim, path=None, sg=0):
-        # 不自己训练而是用已经训练好的词向量
-        # 原文用的是50维和100维的GloVe词向量，100词训练流程（glove包好像有点问题，得调一下）
         print('using word2vec...')
         train_contents = [self.tokenizer(content) for content in train_contents]
         model = Word2Vec(sentences=train_contents, vector_size=embed_dim, window=5, min_count=1, workers=4, sg=sg)
@@ -399,17 +397,6 @@ class DataProcessor(object):
     def get_X_Y(self, vectorizer, contents, labels):
         X = vectorizer.transform(contents)
         Y = list(map(lambda x: int(x.strip()), labels))
-        # print(len(vectorizer.vocabulary_))
-        # print(type(X))
-        # print(X.todense()[0])
-        # print(X.todense()[1])
-        # # print(np.sum(np.array(X.todense()), axis=0).shape)
-        # print(np.array(X.todense()).shape)
-        # print(np.sum(np.array([vec.todense() for vec in X]), axis=0).shape)
-        # # result = np.sum(np.array(X.todense()), axis=0)
-        # result = np.sum(np.array([vec.todense() for vec in X]), axis=0)[0]
-        # print(len(vectorizer.vocabulary_))
-        # print(pd.DataFrame(index=vectorizer.vocabulary_, data={'ab': result, 'ti': result}).head(10))
         vocabs = vectorizer.vocabulary_
         result_dict = {}
         pos = np.array(list(filter(lambda x: int(x[1]) == 1, list(zip(X.todense(), labels)))))[:, 0]
@@ -452,13 +439,11 @@ class DataProcessor(object):
 
     @staticmethod
     def yield_tokens(data_iter):
-        # 转换成生成器形式，以便后续进行处理
         for content in data_iter:
             yield tokenizer(content)
 
     def build_vocab(self, train_contents, word2vec_path=None, load_vocab=False, BERT_tokenizer_path=None,
                     save_path=None):
-        # 构建词典，是否应该包括测试集词语？
         if word2vec_path:
             vec = Vectors(word2vec_path)
             self.vocab = vocab(vec.stoi, min_freq=0)  # 这里的转换把index当成了freq，为保证一一对应设置为0，实际上不影响后续操作
@@ -476,7 +461,6 @@ class DataProcessor(object):
             else:
                 self.vocab = build_vocab_from_iterator(self.yield_tokens(train_contents), specials=[UNK, PAD])
         self.vocab.set_default_index(self.vocab[UNK])
-        # 文本和标签的流水线，后续在collate_fn调用
         # self.text_pipeline = lambda x: self.vocab(tokenizer(x.strip()))
         # self.label_pipeline = lambda x: int(x.strip())
         if not save_path:
@@ -534,7 +518,6 @@ class DataProcessor(object):
         return torch.tensor(self.vocab(tokens), dtype=torch.int64), seq_len, mask
 
     def collate_batch(self, batch):
-        # 具体处理每条数据的方法，使用词典构建的流水线进行处理，转换成词向量，同时等长以转换成张量
         label_list, content_list = [], []
         length_list = []
         mask_list = []
@@ -549,12 +532,10 @@ class DataProcessor(object):
             mask_list.append(mask)
             index_list.append(int(_index.strip()))
         # content_list = torch.cat(content_list)
-        # 固定长度转换为张量
         content_batch = pad_sequence(content_list, padding_value=PAD_IDX).to(device)
         label_list = torch.tensor(label_list, dtype=torch.int64)
         length_list = torch.tensor(length_list, dtype=torch.int64)
         mask_list = torch.tensor(mask_list, dtype=torch.int8)
-        # 暂时不输出index
         index_list = torch.tensor(index_list, dtype=torch.int64)
         # print(len(label_list))
         return content_batch.to(device), label_list.to(device), length_list.to(device), mask_list.to(
@@ -570,7 +551,6 @@ class DataProcessor(object):
         parts = ['title', 'intro', 'related', 'methods', 'conclusion', 'abstract']
         doc_parts = ['intro', 'related', 'methods', 'conclusion', 'abstract']
         full_len = config['full_len']
-        '''两种方法'''
         if flatten:
             print('ops')
         else:
@@ -594,7 +574,6 @@ class DataProcessor(object):
                     final_index_list = final_index_list[:max_count]
                 # final_label_list = np.array([np.array([int(label_dict.get(label))]) for label in final_label_list])
                 for part in doc_parts:
-                    '''层次结构部分'''
                     with open(self.data_cat_path + '{}_{}_{}'.format(phase, part, seed), 'r') as fr:
                         temp_list = json.load(fr)
                     if max_count:
@@ -619,7 +598,6 @@ class DataProcessor(object):
                     print('dealt with {}'.format(part))
                     part_temp_list.append(result_list)
                 for part in [part for part in parts if part not in doc_parts]:
-                    '''不需要层次结构的部分'''
                     with open(self.data_cat_path + '{}_{}_{}'.format(phase, part, seed), 'r') as fr:
                         temp_list = json.load(fr)
                     if max_count:
@@ -634,7 +612,6 @@ class DataProcessor(object):
                         result_list.append(doc_array)
                     print('dealt with {}'.format(part))
                     part_temp_list.append(result_list)
-                '''作者词典部分'''
                 with open(self.data_cat_path + '{}_{}_{}'.format(phase, 'authors', seed), 'r') as fr:
                     temp_list = json.load(fr)
                     result_list = []

@@ -165,8 +165,6 @@ def make_chunk_data(in_path, out_path, seed, bert_path):
 
 
 if __name__ == '__main__':
-    # split_data('.')
-    # get_vocab('.')
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
     parser.add_argument('--phase', default='test', help='the function name.')
@@ -188,26 +186,3 @@ if __name__ == '__main__':
         seed = args.seed
         split_data(in_path, out_path, seed=seed)
         get_vocab(out_path, seed)
-
-    # all_data = json.load(open('../data/AAPR_full/dealt_data', 'r'))
-
-    # tokenizer = get_tokenizer('basic_english')
-    # part = 'related'
-    # len_list = []
-    # tokens_list = []
-    # special_list = []
-    # length = len(all_data[part])
-    # print(length)
-    # print(len([line for line in all_data[part] if ''.join(line).strip()=='']))
-    # temp = [[sent for sent in line if len(tokenizer(sent))>=5] for line in all_data[part]]
-    # for i in range(length):
-    #     len_list.append(len(temp[i]))
-    #     for tokens in temp[i]:
-    #         tokens_len = len(tokenizer(tokens))
-    #         tokens_list.append(tokens_len)
-    #         if tokens_len > 100:
-    #             special_list.append(tokens)
-    # # print(len([line for line in len_list if line > 1]))
-    # print(pd.DataFrame(len_list).describe(percentiles=[0.1, 0.25, 0.5, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99]))
-    # print(pd.DataFrame(tokens_list).describe(percentiles=[0.1, 0.25, 0.5, 0.7, 0.8, 0.9, 0.95, 0.97, 0.99]))
-    # print('\n'.join(special_list[:5]))
