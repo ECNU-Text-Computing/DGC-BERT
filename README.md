@@ -17,7 +17,7 @@ Original dataset:
 Download the dealt dataset from https://drive.google.com/file/d/1UWQzGYuxL53PjNY6wmcknpwhllEEWCUl/view?usp=sharing <br>
 
 You can get the SciBERT model here https://github.com/allenai/scibert <br>
-You can pre-trained state_dicts here https://drive.google.com/file/d/13Inl_ChtY0LBCp9D0wjFW1yFdJPvRMep/view?usp=sharing
+You can get the pre-trained state_dicts here https://drive.google.com/file/d/13Inl_ChtY0LBCp9D0wjFW1yFdJPvRMep/view?usp=sharing
 
 ### Training
 ```sh

@@ -333,7 +333,7 @@ class DataProcessor(object):
                test_contents, test_labels, test_indexes
 
     def extract_count_features(self, train_contents, path=None, min_df=1):
-        # 词频
+        # frequency
         vectorizer = CountVectorizer(min_df=min_df)
         vectorizer.fit(train_contents)
         # print(vectorizer.vocabulary_)
@@ -446,7 +446,7 @@ class DataProcessor(object):
                     save_path=None):
         if word2vec_path:
             vec = Vectors(word2vec_path)
-            self.vocab = vocab(vec.stoi, min_freq=0)  # 这里的转换把index当成了freq，为保证一一对应设置为0，实际上不影响后续操作
+            self.vocab = vocab(vec.stoi, min_freq=0)
             self.vocab.append_token(UNK)
             self.vocab.append_token(PAD)
             unk_vec = torch.mean(vec.vectors, dim=0).unsqueeze(0)
