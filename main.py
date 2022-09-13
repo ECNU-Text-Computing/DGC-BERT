@@ -355,7 +355,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--phase', default='model_test', help='the function name.')
     parser.add_argument('--ablation', default=None, help='the ablation modules.')
-    parser.add_argument('--data_source', default='AAPR', help='the data source.')
+    parser.add_argument('--data_source', default='PeerRead', help='the data source.')
     parser.add_argument('--mode', default=None, help='the model mode.')
     parser.add_argument('--type', default='SciBERT', help='the model type.')
     parser.add_argument('--seed', default=None, help='the data seed.')
@@ -434,7 +434,7 @@ if __name__ == '__main__':
         print('state_dict_path:', state_dict_path)
         model = get_model(args.model, dataProcessor, device, model_config, args=args_dict)
         model.load_model(state_dict_path)
-        torch.save(model, './checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
+        # torch.save(model, './checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
         # model = torch.load('./checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
         model.test(dataProcessor.dataloaders[2])
     elif args.phase == 'mistake_results':

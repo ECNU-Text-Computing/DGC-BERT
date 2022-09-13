@@ -173,7 +173,7 @@ class BaseModel(nn.Module):
                 self.save_model(save_path + '{}_{}.pkl'.format(self.model_name, epoch))
 
             if scheduler:
-                if total_accu is not None and total_accu > acc:  # 总准确率大于验证准确率时调整学习率
+                if total_accu is not None and total_accu > acc:
                     scheduler.step()
             else:
                 total_accu = acc

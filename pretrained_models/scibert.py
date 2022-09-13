@@ -27,7 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--phase', default='test', help='the function name.')
 
     args = parser.parse_args()
-    model = SciBERT(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='pro').cuda()
+    model = SciBERT(50000, 768, 2, 0, 512, model_path='../bert/base_bert/').cuda()
     x = torch.zeros(256, 2, dtype=torch.int).cuda()
     print(model(x, torch.ones(2, dtype=torch.int).cuda(), torch.zeros(2, 256, dtype=torch.int).cuda()))
     # model.get_group_parameters(0.1)

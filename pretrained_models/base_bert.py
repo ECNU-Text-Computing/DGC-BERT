@@ -96,7 +96,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     input_args = args.__dict__
     input_args['predict_dim'] = 256
-    model = BaseBert(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='adap', args=input_args).cuda()
+    model = BaseBert(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', args=input_args).cuda()
     x = torch.zeros(256, 2, dtype=torch.int).cuda()
     print(model(x, torch.ones(2, dtype=torch.int).cuda(), torch.zeros(2, 256, dtype=torch.int).cuda()))
     # model.get_group_parameters(0.1)

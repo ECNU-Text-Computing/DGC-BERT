@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, log_loss
 
+from models.base_model import cal_metrics, get_format_str
 from pretrained_models.BAG import *
 from torch import nn
 import torch.nn.functional as F
@@ -137,34 +138,47 @@ class BAGT(BAG):
             # print('val-time:', time.time() - start_time)
 
         all_predicted_result = np.array(all_predicted_result)
-        all_predicted_label = all_predicted_result.argmax(1)
+        # all_predicted_label = all_predicted_result.argmax(1)
 
-        acc = accuracy_score(all_true_label, all_predicted_label)
-        prec = precision_score(all_true_label, all_predicted_label)
-        recall = recall_score(all_true_label, all_predicted_label)
-        f1 = f1_score(all_true_label, all_predicted_label, average='binary')
-        maf1 = f1_score(all_true_label, all_predicted_label, average='macro')
-        # mif1 = f1_score(all_true_label, all_predicted_label, average='micro')s
-        auc = roc_auc_score(all_true_label, all_predicted_result[:, 1])
-        log_loss_value = log_loss(all_true_label, all_predicted_result)
+        # acc = accuracy_score(all_true_label, all_predicted_label)
+        # prec = precision_score(all_true_label, all_predicted_label)
+        # recall = recall_score(all_true_label, all_predicted_label)
+        # f1 = f1_score(all_true_label, all_predicted_label, average='binary')
+        # maf1 = f1_score(all_true_label, all_predicted_label, average='macro')
+        # # mif1 = f1_score(all_true_label, all_predicted_label, average='micro')s
+        # auc = roc_auc_score(all_true_label, all_predicted_result[:, 1])
+        # log_loss_value = log_loss(all_true_label, all_predicted_result)
+        # avg_loss = np.mean(loss_list)
+        #
+        # print(
+        #     '-' * 59 + '\n' +
+        #     '| average loss {:4.3f} | train accuracy {:8.3f} |\n'
+        #     '| precision {:8.3f} | recall {:10.3f} |\n'
+        #     '| macro-f1 {:9.3f} | normal-f1 {:7.3f} |\n'
+        #     '| auc {:14.3f} | log_loss {:8.3f} |\n'.format(avg_loss, acc, prec, recall, maf1, f1, auc, log_loss_value)
+        # )
+        # epoch_log.write(
+        #     '-' * 59 + '\n' +
+        #     '| average loss {:4.3f} | train accuracy {:8.3f} |\n'
+        #     '| precision {:8.3f} | recall {:10.3f} |\n'
+        #     '| macro-f1 {:9.3f} | normal-f1 {:7.3f} |\n'
+        #     '| auc {:14.3f} | log_loss {:8.3f} |\n'.format(avg_loss, acc, prec, recall, maf1, f1, auc, log_loss_value)
+        # )
+        #
+        # return [avg_loss, acc, prec, recall, maf1, f1, auc, log_loss_value]
+
         avg_loss = np.mean(loss_list)
+        all_predicted_result = np.array(all_predicted_result)
+        train_results = [avg_loss] + cal_metrics(all_true_label, all_predicted_result)
 
-        print(
-            '-' * 59 + '\n' +
-            '| average loss {:4.3f} | train accuracy {:8.3f} |\n'
-            '| precision {:8.3f} | recall {:10.3f} |\n'
-            '| macro-f1 {:9.3f} | normal-f1 {:7.3f} |\n'
-            '| auc {:14.3f} | log_loss {:8.3f} |\n'.format(avg_loss, acc, prec, recall, maf1, f1, auc, log_loss_value)
-        )
-        epoch_log.write(
-            '-' * 59 + '\n' +
-            '| average loss {:4.3f} | train accuracy {:8.3f} |\n'
-            '| precision {:8.3f} | recall {:10.3f} |\n'
-            '| macro-f1 {:9.3f} | normal-f1 {:7.3f} |\n'
-            '| auc {:14.3f} | log_loss {:8.3f} |\n'.format(avg_loss, acc, prec, recall, maf1, f1, auc, log_loss_value)
-        )
+        train_str = '-' * 59 + '\n' + \
+                    get_format_str(train_results, 'train') + \
+                    '-' * 59
+        print(train_str)
+        if epoch_log:
+            epoch_log.write(train_str)
 
-        return [avg_loss, acc, prec, recall, maf1, f1, auc, log_loss_value]
+        return train_results
 
 
 if __name__ == "__main__":
