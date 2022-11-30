@@ -205,6 +205,8 @@ class BaseModel(nn.Module):
     def load_model(self, path):
         # model = torch.load(path)
         state_dict = torch.load(path)['state_dict']
+        # print(state_dict.keys())
+        print(path)
         model = self.load_state_dict(state_dict)
         print('Load successfully!')
         return model

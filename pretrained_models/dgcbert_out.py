@@ -8,21 +8,25 @@ import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, log_loss
 from torch.nn import init
 
+from models.base_model import get_format_str, cal_metrics
 from pretrained_models.BAG import *
 from torch import nn
 import torch.nn.functional as F
 from transformers import BertModel
 
 from pretrained_models.BAGT import BAGT
+from pretrained_models.dgcbert import DGCBERT
 
 REL_POS = False
+
+
 # ACTIVATION = nn.Tanh
 
 
-class DGCBERT(BAGT):
+class DGCBERTO(DGCBERT):
     def __init__(self, vocab_size, embed_dim, num_class, pad_index, word2vec=None, keep_prob=0.5, pad_size=150,
                  hidden_size=768, model_path=None, mode='normal', model_type='BERT', **kwargs):
-        super(DGCBERT, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
+        super(DGCBERTO, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, keep_prob, pad_size,
                                       hidden_size, model_path, mode, model_type, **kwargs)
         print('==current parent==', self.model_name)
         self.model_name = 'DGCBERT'
@@ -96,21 +100,6 @@ class DGCBERT(BAGT):
                 ACTIVATION()
             )
 
-        # print(self.bert_trans)
-        if (self.attention_mode == 'normal') | (self.attention_mode == 'biaffine'):
-            self.word_interaction = InteractionModule(self.predict_dim, self.attention_mode)
-            self.semantic_interaction = InteractionModule(self.predict_dim, self.attention_mode)
-        self.word_gate = GateModule(self.predict_dim)
-        self.semantic_gate = GateModule(self.predict_dim)
-        self.fc = nn.Sequential(
-            FNN(self.final_dim, keep_prob, ACTIVATION),
-            # nn.ReLU(),
-            ACTIVATION(),
-            # nn.Dropout(p=keep_prob),
-            nn.Linear(int(self.final_dim / 4), self.num_class),
-        )
-        # print(self.fc)
-
     def forward(self, content, lengths, masks, **kwargs):
         lengths = torch.sum(masks, dim=-1)
         content = content.permute(1, 0)
@@ -120,16 +109,18 @@ class DGCBERT(BAGT):
         pooled = output['pooler_output']
 
         word_attention_gnn, semantic_attention_gnn = self.gnn(output, lengths)
-        # print(torch.cosine_similarity(word_attention_gnn, semantic_attention_gnn, dim=-1).shape)
-        if not self.block_pooled:
-            bert_out = self.bert_trans(pooled)
-            word_attention_gnn_mix = self.word_interaction(word_attention_gnn, semantic_attention_gnn, masks)
-            semantic_attention_gnn_mix = self.semantic_interaction(semantic_attention_gnn, word_attention_gnn,  masks)
-
-            word_attention_gnn = self.word_gate(bert_out, word_attention_gnn_mix)
-            semantic_attention_gnn = self.semantic_gate(bert_out, semantic_attention_gnn_mix)
-
         # print(torch.cosine_similarity(word_attention_gnn, semantic_attention_gnn, dim=-1))
+        before_nodes_sim = torch.cosine_similarity(word_attention_gnn, semantic_attention_gnn, dim=-1)  # [N, L]
+        # if not self.block_pooled:
+        bert_out = self.bert_trans(pooled)
+        word_attention_gnn_mix = self.word_interaction(word_attention_gnn, semantic_attention_gnn, masks)
+        semantic_attention_gnn_mix = self.semantic_interaction(semantic_attention_gnn, word_attention_gnn, masks)
+        mix_graphs_sim = torch.cosine_similarity(word_attention_gnn_mix, semantic_attention_gnn_mix, dim=-1)  # [N, L]
+
+        word_attention_gnn = self.word_gate(bert_out, word_attention_gnn_mix)
+        semantic_attention_gnn = self.semantic_gate(bert_out, semantic_attention_gnn_mix)
+        after_graphs_sim = torch.cosine_similarity(word_attention_gnn, semantic_attention_gnn, dim=-1)  # [N]
+
         gnn_out = torch.cat((word_attention_gnn, semantic_attention_gnn), dim=1)
         if self.block_pooled:
             out = gnn_out
@@ -140,7 +131,69 @@ class DGCBERT(BAGT):
         out = self.dropout(out)
         out = self.fc(out)
 
-        return out
+        return out, [before_nodes_sim, mix_graphs_sim, after_graphs_sim]
+
+    def evaluate(self, dataloader, phase='train'):
+        self.criterion = torch.nn.CrossEntropyLoss()
+        self.eval()
+        all_predicted_result = []
+        all_true_label = []
+        all_sim_result = []
+
+        with torch.no_grad():
+            loss_list = []
+            for idx, (contents, labels, lengths, masks, indexes) in enumerate(dataloader):
+                if type(contents) == list:
+                    contents = [content.to(self.device) for content in contents]
+                else:
+                    contents = contents.to(self.device)
+                labels = labels.to(self.device)
+                # lengths = lengths.to(self.device)
+                masks = masks.to(self.device)
+
+                model_result = self(contents, lengths, masks)
+
+                if type(model_result) != torch.Tensor:
+                    sim_result = model_result[-1]
+                    model_result = model_result[0]
+                loss = self.criterion(model_result, labels.long())  # 计算损失函数
+                loss_list.append(loss.item())
+
+                predicted_result = F.softmax(model_result, dim=1).detach().cpu().numpy()
+                true_label = labels.cpu().numpy().tolist()
+
+                all_predicted_result += predicted_result.tolist()
+                all_true_label += true_label
+                all_sim_result.append(sim_result)
+
+            all_predicted_result = np.array(all_predicted_result)
+            all_predicted_label = all_predicted_result.argmax(1)
+            avg_loss = np.mean(loss_list)
+            # print(len(list(zip(*all_sim_result))))
+            all_sim_result = [torch.cat(sim, dim=0) for sim in zip(*all_sim_result)]
+
+        if phase == 'benchmark':
+            print(all_predicted_label)
+            print(all_true_label)
+        results = [avg_loss] + cal_metrics(all_true_label, all_predicted_result)
+
+        return results, all_sim_result
+
+    def test(self, test_dataloader, phase='test', epoch_log=None):
+        # print('-' * 59)
+        test_start_time = time.time()
+        all_results, all_sim_result = self.evaluate(test_dataloader, phase)
+        test_str = '-' * 59 + '\n' \
+                   + '| end of test | time: {:5.2f}s |\n'.format(time.time() - test_start_time) \
+                   + get_format_str(all_results, phase) \
+                   + '-' * 59
+
+        print(test_str)
+        print([sim.shape for sim in all_sim_result])
+        if epoch_log:
+            epoch_log.write(test_str)
+
+        return all_results, all_sim_result
 
 
 class TopAttentionGNN(TopGNN):
@@ -165,7 +218,8 @@ class TopAttentionGNN(TopGNN):
                                                 ).transpose(-2, -1).max(dim=3)[0]
 
         word_output = self.activation(self.word_fc(self.word_gnn(word_embed, word_attention, lengths)))
-        semantic_output = self.activation(self.semantic_fc(self.semantic_gnn(semantic_embed, semantic_attention, lengths)))
+        semantic_output = self.activation(
+            self.semantic_fc(self.semantic_gnn(semantic_embed, semantic_attention, lengths)))
 
         return word_output, semantic_output
 
@@ -186,7 +240,8 @@ class TopAPPNPAttentionGNNModule(TopAPPNPGNNModule):
         topk_values = topk_result.values
         topk_indices = topk_result.indices
 
-        sub_graphs = [self.seq_to_graph(topk_values[i], topk_indices[i], hidden_state[i], self.reduce, lengths[i]) for i in
+        sub_graphs = [self.seq_to_graph(topk_values[i], topk_indices[i], hidden_state[i], self.reduce, lengths[i]) for i
+                      in
                       range(batch_size)]
         batch_graph = dgl.batch(sub_graphs)
 
@@ -252,7 +307,8 @@ class InteractionModule(nn.Module):
         # output = self.activation(self.fc(combined.view(-1, 2 * self.dim_model))).view(batch_size, -1, self.dim_model)
         output = F.tanh(self.fc(combined.view(-1, 2 * self.dim_model))).view(batch_size, -1, self.dim_model)
         # output = output.mean(dim=1)
-        output = (torch.sum((output.transpose(1, 2) * attention_mask.unsqueeze(dim=1)).transpose(1, 2), dim=1).T / lengths).T
+        output = (torch.sum((output.transpose(1, 2) * attention_mask.unsqueeze(dim=1)).transpose(1, 2),
+                            dim=1).T / lengths).T
         # output = output.max(dim=1)[0]
 
         return output
@@ -296,17 +352,18 @@ if __name__ == "__main__":
     # print(result[0].shape)
     # print(result[0])
     args = {'k': 5, 'alpha': None, 'top_rate': 0.1, 'predict_dim': None}
-    model = DGCBERT(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax', args=args).cuda()
+    model = DGCBERT(50000, 768, 2, 0, 512, model_path='../bert/base_bert/', mode='top_biaffine+softmax',
+                    args=args).cuda()
     seq_len = 128
     bs = 2
     # x = torch.randint(0, 20000, (seq_len, 2)).cuda()
     # x = torch.ones((seq_len, 2)).cuda()
     # x = torch.zeros(256, 2, dtype=torch.int).cuda()
-    x = torch.tensor(([list(range(seq_len * i, seq_len * (i + 1) - i * 10)) + [0] * 10 * i for i in range(bs)]), dtype=torch.int).permute(1,
-                                                                                                                  0).cuda()
+    x = torch.tensor(([list(range(seq_len * i, seq_len * (i + 1) - i * 10)) + [0] * 10 * i for i in range(bs)]),
+                     dtype=torch.int).permute(1,
+                                              0).cuda()
     lengths = torch.tensor([seq_len * (i + 1) - i * 10 - seq_len * i for i in range(bs)]).cuda()
-    masks = torch.tensor([[1] * length + [0] * (seq_len-length) for length in lengths]).cuda()
+    masks = torch.tensor([[1] * length + [0] * (seq_len - length) for length in lengths]).cuda()
     print(lengths)
     print(x.shape)
     print(model(x, lengths, masks).cuda())
-

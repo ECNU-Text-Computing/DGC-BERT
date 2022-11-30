@@ -82,5 +82,18 @@
         "epochs": 5,
         "lr": 2e-5,
         "hidden_size": 768
+    },
+    "DGCBERTO":{
+        "optimizer": "ADAMW",
+        "model_type": "SciBERT",
+        "epochs": 5,
+        "lr": 2e-5,
+        "hidden_size": 768,
+        "k": 4,
+        "alpha": 0.5,
+        "top_rate": 0.3,
+        "predict_dim": 128,
+        "state_dict_path": "./checkpoints/AAPR/DGCBERT_best.pt",
+        "mode": "top_biaffine+softmax"
     }
 }

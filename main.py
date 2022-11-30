@@ -10,8 +10,11 @@ import numpy as np
 import pandas as pd
 
 import torch
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from pretrained_models.dgcbert import DGCBERT
+from pretrained_models.dgcbert_out import DGCBERTO
 from pretrained_models.dgcbert_ablation import DGCBERTA, DGCBERTS
 from pretrained_models.BAGT import BAGT
 from pretrained_models.bert import BERT
@@ -21,7 +24,6 @@ torch.backends.cudnn.benchmark = True
 
 from data_processor import DataProcessor
 from pretrained_models.BAG import BAG
-
 
 PAD = '[PAD]'
 
@@ -131,6 +133,7 @@ def train_single_vote(model_name='simple_model', dataProcessor=None, model_confi
     acc, prec, recall, maf1, mif1 = model.test_vote(dataProcessor.dataloaders[2])
     return acc, prec, recall, maf1, mif1
 
+
 def get_model(model_name, dataProcessor, device, model_config, seed=None, args=None):
     model = None
     # if args:
@@ -170,9 +173,18 @@ def get_model(model_name, dataProcessor, device, model_config, seed=None, args=N
         hidden_size = model_config["hidden_size"] if "hidden_size" in model_config.keys() else 768
         model = DGCBERT(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
                         dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
-                        pad_size=dataProcessor.pad_size, model_path=model_config['model_path'], mode=model_config["mode"],
+                        pad_size=dataProcessor.pad_size, model_path=model_config['model_path'],
+                        mode=model_config["mode"],
                         model_type=model_config["model_type"], T=T, seed=seed, args=args
                         ).to(device)
+    elif model_name == 'DGCBERTO':
+        hidden_size = model_config["hidden_size"] if "hidden_size" in model_config.keys() else 768
+        model = DGCBERTO(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
+                         dataProcessor.vocab[PAD], dataProcessor.vectors, hidden_size=hidden_size, keep_prob=keep_prob,
+                         pad_size=dataProcessor.pad_size, model_path=model_config['model_path'],
+                         mode=model_config["mode"],
+                         model_type=model_config["model_type"], T=T, seed=seed, args=args
+                         ).to(device)
     elif model_name == 'DGCBERTA':
         hidden_size = model_config["hidden_size"] if "hidden_size" in model_config.keys() else 768
         model = DGCBERTA(len(dataProcessor.vocab), dataProcessor.embed_dim, dataProcessor.num_class,
@@ -349,18 +361,51 @@ def get_mistake_results(model_path, model_name, model_config, phase, data_source
     df.to_csv('./checkpoints/results/{}/mistake_results_{}.csv'.format(data_source, model_name))
 
 
+def show_sim_results(sim_results, data_source):
+    plt.rcParams['font.size'] = 16
+    before_nodes_sim, mix_graphs_sim, after_graphs_sim = sim_results
+    before_graphs_sim = before_nodes_sim.mean(dim=1)
+    print([torch.flatten(sim).mean().item() for sim in sim_results])
+    df = pd.DataFrame(columns=['GCN', 'Interaction', 'Gating'], data=np.stack([before_graphs_sim.cpu().numpy(),
+                                                                         mix_graphs_sim.cpu().numpy(),
+                                                                         after_graphs_sim.cpu().numpy()], axis=0).T)
+    for column in df.columns:
+        plt.figure()
+        df[column].hist()
+        plt.tight_layout()
+        plt.savefig('./imgs/{}_sim_hist_{}.pdf'.format(data_source, column), dpi=300, bbox_inches='tight')
+    colors = [(0 / 255, 135 / 255, 116 / 255, 0.8), (20 / 255, 67 / 255, 142 / 255, 0.8),
+              (132 / 255, 130 / 255, 186 / 255, 0.8)]
+    plt.figure()
+    for column, color in zip(df.columns, colors):
+        plt.hist(df[column], color=color, bins=40, range=[-0.2, 0.2])
+    plt.legend(df.columns)
+    plt.ylabel('Frequency')
+    plt.tight_layout()
+    plt.savefig('./imgs/{}_sim_hist_{}.pdf'.format(data_source, 'all'), dpi=300, bbox_inches='tight')
+
+    df_node = pd.DataFrame(torch.flatten(before_nodes_sim).cpu().numpy())
+    plt.figure()
+    df_node.hist()
+    plt.tight_layout()
+    plt.savefig('./imgs/{}_sim_hist_{}.pdf'.format(data_source, 'node'), dpi=300, bbox_inches='tight')
+
+    print(df.describe())
+    print(df_node.describe())
+
+
 if __name__ == '__main__':
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
 
-    parser.add_argument('--phase', default='model_test', help='the function name.')
+    parser.add_argument('--phase', default='sim_test', help='the function name.')
     parser.add_argument('--ablation', default=None, help='the ablation modules.')
-    parser.add_argument('--data_source', default='PeerRead', help='the data source.')
+    parser.add_argument('--data_source', default='AAPR', help='the data source.')
     parser.add_argument('--mode', default=None, help='the model mode.')
     parser.add_argument('--type', default='SciBERT', help='the model type.')
     parser.add_argument('--seed', default=None, help='the data seed.')
     parser.add_argument('--model_seed', default=123, help='the model seed.')
-    parser.add_argument('--model', default='DGCBERT', help='the selected model for other methods.')
+    parser.add_argument('--model', default='DGCBERTO', help='the selected model for other methods.')
     parser.add_argument('--model_path', default=None, help='the selected model for deep analysis.')
     parser.add_argument('--k', default=None, help='the layers.')
     parser.add_argument('--alpha', default=None, help='the alpha.')
@@ -375,8 +420,7 @@ if __name__ == '__main__':
     MODEL_SEED = int(args.model_seed)
     setup_seed(MODEL_SEED)
     print('model_seed', MODEL_SEED)
-    pretrained_models = ['BERT', 'SciBERT', 'BAG', 'BAGT', 'DGCBERT', 'DGCBERTA',
-                         'DGCBERTS']
+    pretrained_models = ['BERT', 'SciBERT', 'BAG', 'BAGT', 'DGCBERT', 'DGCBERTA', 'DGCBERTS', 'DGCBERTO']
     all_list = pretrained_models
     DATA_SOURCE = args.data_source  # ['openreview', 'AAPR', 'openreview_abstract']
     CONFIG_DICT = get_configs(DATA_SOURCE, all_list)
@@ -409,7 +453,8 @@ if __name__ == '__main__':
         if args.ablation:
             print('>>ablation start!<<')
             CONFIG_DICT[args.phase]['ablation_module'] = args.ablation
-        phase_model_train('pretrained', DATA_SOURCE, args.phase, CONFIG_DICT[args.phase], mode=args.mode, args=args_dict)
+        phase_model_train('pretrained', DATA_SOURCE, args.phase, CONFIG_DICT[args.phase], mode=args.mode,
+                          args=args_dict)
     elif args.phase == 'best_pretrained':
         get_pretrained_test(DATA_SOURCE, PRETRAINED_MODEL, CONFIG_DICT[PRETRAINED_MODEL], DEFAULT_CONFIG['best_value'])
     elif args.phase == 'model_test':
@@ -437,6 +482,32 @@ if __name__ == '__main__':
         # torch.save(model, './checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
         # model = torch.load('./checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
         model.test(dataProcessor.dataloaders[2])
+    elif args.phase == 'sim_test':
+        model_config = CONFIG_DICT[args.model]
+        if 'mode' not in model_config:
+            model_config['mode'] = args.mode
+        dataProcessor = get_DL_data(base_config=model_config, data_source=DATA_SOURCE,
+                                    BERT_tokenizer_path=model_config['vocab_path'],
+                                    load_data=model_config['saved_data'])
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        state_dict_path = args.state_dict_path
+
+        if args.model.startswith('DGCBERT'):
+            args_dict['k'] = model_config['k']
+            args_dict['alpha'] = model_config['alpha']
+            args_dict['top_rate'] = model_config['top_rate']
+            args_dict['predict_dim'] = model_config['predict_dim']
+
+        if not args.state_dict_path:
+            state_dict_path = model_config['state_dict_path']
+
+        print('state_dict_path:', state_dict_path)
+        model = get_model(args.model, dataProcessor, device, model_config, args=args_dict)
+        model.load_model(state_dict_path)
+        # torch.save(model, './checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
+        # model = torch.load('./checkpoints/{}/DGCBERT_complete_best'.format(DATA_SOURCE))
+        _, sim_results = model.test(dataProcessor.dataloaders[2])
+        show_sim_results(sim_results, DATA_SOURCE)
     elif args.phase == 'mistake_results':
         model_config = CONFIG_DICT[args.model]
         if args.model in pretrained_models:
