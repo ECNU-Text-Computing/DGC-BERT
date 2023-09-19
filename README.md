@@ -38,7 +38,7 @@ python main.py --phase model_test --data_source AAPR/PeerRead --model DGCBERT
 ```
 
 ### Bibtex
-```sh
+```bibtex
 @article{xue2023re,
   title={Re-examining lexical and semantic attention: Dual-view graph convolutions enhanced BERT for academic paper rating},
   author={Xue, Zhikai and He, Guoxiu and Liu, Jiawei and Jiang, Zhuoren and Zhao, Star and Lu, Wei},
